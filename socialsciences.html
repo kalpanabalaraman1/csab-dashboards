@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSAB dashboard — Social Sciences (example)</title>
+<style>
+  :root {
+    --surface-1: #f7f6f2; --surface-2: #ffffff; --border: #e1e0d9;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --text-danger: #a32d2d; --bg-warning: #faeeda; --text-warning: #854f0b;
+    --radius: 8px; --blue: #2a78d6; --orange: #eb6834; --red: #e34948; --accent: #0c447c;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--surface-1); color: var(--text-primary); margin: 0; padding: 2rem; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0 0 1.5rem; }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+  .tab-btn { padding: 10px 16px; font-size: 14px; font-weight: 500; border: none; background: none;
+    border-bottom: 2px solid transparent; color: var(--text-secondary); cursor: pointer; }
+  .tab-btn.active { border-bottom-color: var(--accent); color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .filters { display: flex; gap: 12px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .filter-group { flex: 1; min-width: 170px; }
+  .filter-group label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  select { width: 100%; height: 36px; padding: 0 8px; border-radius: var(--radius);
+    border: 0.5px solid var(--border); background: var(--surface-2); font-size: 14px; color: var(--text-primary); }
+  .kpi-grid { display: grid; gap: 12px; margin-bottom: 1.5rem; }
+  .kpi-grid.cols-1 { grid-template-columns: 1fr; }
+  .kpi-grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .kpi-grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .kpi-card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+  .kpi-card p.label { font-size: 13px; color: var(--text-secondary); margin: 0 0 4px; }
+  .kpi-card p.value { font-size: 24px; font-weight: 500; margin: 0; }
+  .kpi-card p.value.danger { color: var(--text-danger); }
+  .kpi-card p.sub { font-size: 11px; color: var(--text-muted); margin: 4px 0 0; }
+  .chart-title { font-size: 14px; font-weight: 500; margin: 0 0 8px; }
+  .chart-wrap { position: relative; width: 100%; margin-bottom: 8px; }
+  .side-by-side { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .warning-banner { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 1.25rem; padding: 8px 12px;
+    background: var(--bg-warning); border-radius: var(--radius); font-size: 12px; color: var(--text-warning); }
+  .footnote { font-size: 12px; color: var(--text-muted); margin: 8px 0 0; }
+  @media (max-width: 700px) { .side-by-side { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>CSAB assignments dashboard — example</h1>
+  <p class="subtitle">Subject chair: <strong>Professor Henry Yeung</strong> &middot; Subject area: <strong>Social Sciences</strong></p>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtn2">Not yet released for review</button>
+    <button class="tab-btn" id="tabBtn1">Completed assignments</button>
+  </div>
+
+  <!-- TAB 1 (now shown second) -->
+  <div class="panel" id="panel1">
+    <div class="filters">
+      <div class="filter-group">
+        <label for="periodSelect">Time period</label>
+        <select id="periodSelect">
+          <option value="thisMonth">This month</option>
+          <option value="lastMonth">Last month</option>
+          <option value="last3Months">Last 3 months</option>
+          <option value="thisYear" selected>This year</option>
+          <option value="lastYear">Last year</option>
+          <option value="all">All time</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="typeSelect1">Assignment type</label>
+        <select id="typeSelect1">
+          <option value="evaluation" selected>Evaluation</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="fieldSelect1">Subject area</label>
+        <select id="fieldSelect1">
+          <option value="socsci">Social Sciences</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="kpi-grid cols-3">
+      <div class="kpi-card"><p class="label">Completed (final vote given)</p><p class="value" id="kpiCompleted1">-</p></div>
+      <div class="kpi-card"><p class="label">Open (released for review, no final vote yet)</p><p class="value" id="kpiOpen1">-</p></div>
+      <div class="kpi-card"><p class="label">Median TAT (this selection)</p><p class="value" id="kpiMedianTat1">-</p></div>
+    </div>
+
+    <div class="side-by-side">
+      <div>
+        <p class="chart-title">Completed by month, with median TAT (real dates)</p>
+        <div class="chart-wrap" style="height:270px;"><canvas id="trendCompleted"></canvas></div>
+      </div>
+      <div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+          <p class="chart-title" style="margin-bottom:8px;">Open titles (<span id="openCount">-</span>), sorted by days pending since release for review</p>
+          <button id="exportOpenBtn" style="height:28px; padding:0 10px; border-radius:var(--radius); border:0.5px solid var(--border); background:var(--surface-2); font-size:11px; color:var(--text-primary); cursor:pointer;">Export CSV</button>
+        </div>
+        <div id="openTableWrap" style="max-height:340px; overflow-y:auto; border:0.5px solid var(--border); border-radius:var(--radius);">
+          <table style="width:100%; border-collapse:collapse; font-size:12px;" id="openTable">
+            <thead style="position:sticky; top:0; background:var(--surface-2);">
+              <tr style="border-bottom:0.5px solid var(--border);">
+                <th data-sort="title" style="text-align:left; padding:6px 8px; color:var(--text-secondary); font-weight:500; cursor:pointer; user-select:none;">Journal title &#8597;</th>
+                <th data-sort="age" style="text-align:right; padding:6px 8px; color:var(--text-secondary); font-weight:500; cursor:pointer; user-select:none;">Days pending &#8597;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <p class="footnote">Gaps in the TAT line mean no titles were completed that month — real sparsity, not missing data. Dates used: "Date final decision" for completions, "Date released for review" for when a title reaches the subject chair.</p>
+  </div>
+
+  <!-- TAB 2 (now shown first / default) -->
+  <div class="panel active" id="panel2">
+    <div class="filters">
+      <div class="filter-group">
+        <label for="typeSelect2">Assignment type</label>
+        <select id="typeSelect2">
+          <option value="evaluation" selected>Evaluation</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="fieldSelect2">Subject area</label>
+        <select id="fieldSelect2">
+          <option value="socsci">Social Sciences</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="kpi-grid cols-1">
+      <div class="kpi-card"><p class="label">Open, not yet released</p><p class="value" id="kpiOpenTotal">-</p></div>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <p class="chart-title" style="margin-bottom:0;">Titles waiting to be released for review, by current status (<span id="preRfrCount">-</span> titles)</p>
+      <button id="exportPreRfrBtn" style="height:32px; padding:0 12px; border-radius:var(--radius); border:0.5px solid var(--border); background:var(--surface-2); font-size:12px; color:var(--text-primary); cursor:pointer;">Export title details (CSV)</button>
+    </div>
+    <p id="preRfrBucketSummary" style="font-size:13px; color:var(--text-secondary); margin:12px 0 0;"></p>
+    <div class="chart-wrap" style="height:320px; max-width:420px; margin:8px auto 8px;"><canvas id="preRfrPie"></canvas></div>
+    <p class="footnote">These titles have not yet reached "Released for review," so the subject chair has not received them yet — this reflects future pipeline volume, not current workload. Use "Export title details" for the full per-title list (title, status, publisher, journal website).</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script>
+const tabBtn1 = document.getElementById('tabBtn1'), tabBtn2 = document.getElementById('tabBtn2');
+const panel1 = document.getElementById('panel1'), panel2 = document.getElementById('panel2');
+tabBtn1.addEventListener('click', () => { panel1.classList.add('active'); panel2.classList.remove('active'); tabBtn1.classList.add('active'); tabBtn2.classList.remove('active'); });
+tabBtn2.addEventListener('click', () => { panel2.classList.add('active'); panel1.classList.remove('active'); tabBtn2.classList.add('active'); tabBtn1.classList.remove('active'); });
+
+// ---- REAL DATA: Social Sciences / Professor Henry Yeung ----
+const months = ['2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08'];
+const completedByMonth = [8, 14, 23, 29, 30, 33, 7, 8, 14, 1, 5, 2, 0, 0];
+const medianTatByMonth = [10.0, 7, 16, 9, 17.0, 4.0, 6, 18.0, 14, null, 8.0, 5.0, null, null];
+const completedTatsFlat = [
+  {month:'2025-07',tat:75}, {month:'2025-07',tat:4}, {month:'2025-07',tat:0}, {month:'2025-07',tat:4}, {month:'2025-07',tat:1}, {month:'2025-07',tat:16}, {month:'2025-07',tat:124}, {month:'2025-07',tat:25},
+  {month:'2025-08',tat:1}, {month:'2025-08',tat:26}, {month:'2025-08',tat:1}, {month:'2025-08',tat:8}, {month:'2025-08',tat:17}, {month:'2025-08',tat:7}, {month:'2025-08',tat:26}, {month:'2025-08',tat:18},
+  {month:'2025-08',tat:4}, {month:'2025-08',tat:3}, {month:'2025-08',tat:1}, {month:'2025-08',tat:1}, {month:'2025-08',tat:23}, {month:'2025-09',tat:22}, {month:'2025-09',tat:16}, {month:'2025-09',tat:16},
+  {month:'2025-09',tat:19}, {month:'2025-09',tat:10}, {month:'2025-09',tat:11}, {month:'2025-09',tat:12}, {month:'2025-09',tat:15}, {month:'2025-09',tat:16}, {month:'2025-09',tat:10}, {month:'2025-09',tat:13},
+  {month:'2025-09',tat:13}, {month:'2025-09',tat:28}, {month:'2025-09',tat:25}, {month:'2025-09',tat:25}, {month:'2025-09',tat:28}, {month:'2025-09',tat:17}, {month:'2025-09',tat:25}, {month:'2025-09',tat:28},
+  {month:'2025-09',tat:12}, {month:'2025-09',tat:12}, {month:'2025-09',tat:7}, {month:'2025-09',tat:15}, {month:'2025-10',tat:10}, {month:'2025-10',tat:10}, {month:'2025-10',tat:22}, {month:'2025-10',tat:7},
+  {month:'2025-10',tat:8}, {month:'2025-10',tat:10}, {month:'2025-10',tat:16}, {month:'2025-10',tat:0}, {month:'2025-10',tat:17}, {month:'2025-10',tat:4}, {month:'2025-10',tat:12}, {month:'2025-10',tat:5},
+  {month:'2025-10',tat:8}, {month:'2025-10',tat:9}, {month:'2025-10',tat:12}, {month:'2025-10',tat:3}, {month:'2025-10',tat:5}, {month:'2025-10',tat:12}, {month:'2025-10',tat:0}, {month:'2025-10',tat:9},
+  {month:'2025-10',tat:8}, {month:'2025-10',tat:5}, {month:'2025-10',tat:5}, {month:'2025-10',tat:17}, {month:'2025-10',tat:14}, {month:'2025-10',tat:9}, {month:'2025-10',tat:9}, {month:'2025-10',tat:15},
+  {month:'2025-10',tat:15}, {month:'2025-11',tat:16}, {month:'2025-11',tat:12}, {month:'2025-11',tat:23}, {month:'2025-11',tat:23}, {month:'2025-11',tat:19}, {month:'2025-11',tat:1}, {month:'2025-11',tat:12},
+  {month:'2025-11',tat:18}, {month:'2025-11',tat:18}, {month:'2025-11',tat:22}, {month:'2025-11',tat:16}, {month:'2025-11',tat:13}, {month:'2025-11',tat:25}, {month:'2025-11',tat:12}, {month:'2025-11',tat:24},
+  {month:'2025-11',tat:22}, {month:'2025-11',tat:19}, {month:'2025-11',tat:17}, {month:'2025-11',tat:25}, {month:'2025-11',tat:17}, {month:'2025-11',tat:11}, {month:'2025-11',tat:11}, {month:'2025-11',tat:9},
+  {month:'2025-11',tat:9}, {month:'2025-11',tat:25}, {month:'2025-11',tat:17}, {month:'2025-11',tat:9}, {month:'2025-11',tat:9}, {month:'2025-11',tat:16}, {month:'2025-11',tat:18}, {month:'2025-12',tat:3},
+  {month:'2025-12',tat:20}, {month:'2025-12',tat:4}, {month:'2025-12',tat:1}, {month:'2025-12',tat:4}, {month:'2025-12',tat:2}, {month:'2025-12',tat:7}, {month:'2025-12',tat:0}, {month:'2025-12',tat:0},
+  {month:'2025-12',tat:3}, {month:'2025-12',tat:13}, {month:'2025-12',tat:72}, {month:'2025-12',tat:18}, {month:'2025-12',tat:17}, {month:'2025-12',tat:16}, {month:'2025-12',tat:16}, {month:'2025-12',tat:10},
+  {month:'2025-12',tat:3}, {month:'2025-12',tat:3}, {month:'2025-12',tat:3}, {month:'2025-12',tat:19}, {month:'2025-12',tat:0}, {month:'2025-12',tat:20}, {month:'2025-12',tat:10}, {month:'2025-12',tat:10},
+  {month:'2025-12',tat:3}, {month:'2025-12',tat:0}, {month:'2025-12',tat:0}, {month:'2026-01',tat:6}, {month:'2026-01',tat:10}, {month:'2026-01',tat:4}, {month:'2026-01',tat:6}, {month:'2026-01',tat:5},
+  {month:'2026-01',tat:6}, {month:'2026-01',tat:10}, {month:'2026-02',tat:20}, {month:'2026-02',tat:21}, {month:'2026-02',tat:20}, {month:'2026-02',tat:20}, {month:'2026-02',tat:16}, {month:'2026-02',tat:4},
+  {month:'2026-02',tat:8}, {month:'2026-02',tat:11}, {month:'2026-03',tat:10}, {month:'2026-03',tat:348}, {month:'2026-03',tat:14}, {month:'2026-03',tat:115}, {month:'2026-03',tat:14}, {month:'2026-03',tat:8},
+  {month:'2026-03',tat:15}, {month:'2026-05',tat:8}, {month:'2026-05',tat:8}, {month:'2026-06',tat:10}, {month:'2026-06',tat:0}
+];
+const medianTat = 7.0;
+const openCount = 0; // current snapshot: status = "Released for review"
+const openTitles = [];
+
+function median(vals) {
+  if (!vals.length) return null;
+  const s = [...vals].sort((a,b)=>a-b);
+  const mid = Math.floor(s.length/2);
+  return s.length % 2 ? s[mid] : (s[mid-1]+s[mid])/2;
+}
+
+function monthLabel(m) { const [y,mo]=m.split('-'); return new Date(y,mo-1).toLocaleString('en',{month:'short',year:'2-digit'}); }
+function getMonthRange(period) {
+  const lastIdx = months.length-1;
+  switch(period) {
+    case 'thisMonth': return months.slice(lastIdx, lastIdx+1);
+    case 'lastMonth': return months.slice(lastIdx-1, lastIdx);
+    case 'last3Months': return months.slice(lastIdx-2, lastIdx+1);
+    case 'thisYear': return months.filter(m=>m.startsWith('2026'));
+    case 'lastYear': return months.filter(m=>m.startsWith('2025'));
+    case 'all': default: return months;
+  }
+}
+
+const barLabelPlugin = {
+  id:'barLabel',
+  afterDatasetsDraw(chart) {
+    if (!chart.options.plugins.barLabel || !chart.options.plugins.barLabel.enabled) return;
+    const {ctx} = chart; const meta = chart.getDatasetMeta(0);
+    const labels = chart.options.plugins.barLabel.values;
+    ctx.save(); ctx.font='600 11px sans-serif'; ctx.fillStyle='#52514e'; ctx.textAlign='center';
+    meta.data.forEach((bar,i) => { if (labels[i]!=null) ctx.fillText(labels[i]+'d', bar.x, bar.y-6); });
+    ctx.restore();
+  }
+};
+
+const completedChart = new Chart(document.getElementById('trendCompleted'), {
+  type:'bar',
+  data: { labels: [], datasets: [
+    { type:'bar', label:'Completed', data:[], backgroundColor:'#2a78d6', borderRadius:4, order:2, yAxisID:'y' },
+    { type:'line', label:'Median TAT (days)', data:[], borderColor:'#e34948', backgroundColor:'#e34948', spanGaps:true, tension:0.3, pointRadius:3, yAxisID:'y1', order:1 }
+  ]},
+  options: { responsive:true, maintainAspectRatio:false,
+    scales: { x:{grid:{display:false}}, y:{beginAtZero:true, grid:{color:'#e1e0d9'}, title:{display:true,text:'Titles',font:{size:10}}},
+              y1:{beginAtZero:true, grid:{display:false}, position:'right', title:{display:true,text:'Median TAT (days)',font:{size:10}}} },
+    plugins: { legend:{position:'bottom', labels:{boxWidth:10, font:{size:11}}} } }
+});
+
+let openSortKey = 'age', openSortDir = 'desc';
+function renderOpenTable() {
+  document.getElementById('openCount').textContent = openTitles.length;
+  if (!openTitles.length) {
+    document.getElementById('openTableWrap').innerHTML = '<p style="padding:2rem; text-align:center; color:var(--text-muted); font-size:13px;">No titles currently open under this subject chair — nothing is sitting at "Released for review" right now.</p>';
+    document.getElementById('exportOpenBtn').disabled = true;
+    return;
+  }
+  const sorted = [...openTitles].sort((a,b) => {
+    const v = a[openSortKey] > b[openSortKey] ? 1 : a[openSortKey] < b[openSortKey] ? -1 : 0;
+    return openSortDir === 'asc' ? v : -v;
+  });
+  document.querySelector('#openTable tbody').innerHTML = sorted.map(t => `
+    <tr style="border-bottom:0.5px solid var(--border);">
+      <td style="padding:6px 8px;">${t.title}</td>
+      <td style="text-align:right; padding:6px 8px; ${t.age > medianTat ? 'color:var(--text-danger); font-weight:600;' : ''}">${t.age}</td>
+    </tr>`).join('');
+}
+document.querySelectorAll('#openTable th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.getAttribute('data-sort');
+    if (openSortKey === key) { openSortDir = openSortDir === 'asc' ? 'desc' : 'asc'; }
+    else { openSortKey = key; openSortDir = key === 'title' ? 'asc' : 'desc'; }
+    renderOpenTable();
+  });
+});
+renderOpenTable();
+
+function exportOpenCsv() {
+  const header = ['Journal title','Days pending','Overdue (past median TAT)'];
+  const rows = openTitles.map(t => [t.title, t.age, t.age > medianTat ? 'Yes' : 'No']);
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'open_titles.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('exportOpenBtn').addEventListener('click', exportOpenCsv);
+
+function renderTab1() {
+  const period = document.getElementById('periodSelect').value;
+  const range = getMonthRange(period);
+  const idxs = range.map(m => months.indexOf(m));
+  const labels = range.map(monthLabel);
+
+  const completedVals = idxs.map(i => completedByMonth[i]);
+  const medianTatVals = idxs.map(i => medianTatByMonth[i]);
+
+  completedChart.data.labels = labels;
+  completedChart.data.datasets[0].data = completedVals;
+  completedChart.data.datasets[1].data = medianTatVals;
+  completedChart.update();
+
+  const totalCompleted = completedVals.reduce((a,b)=>a+b,0);
+  const periodTats = completedTatsFlat.filter(d => range.includes(d.month)).map(d => d.tat);
+  const periodMedianTat = median(periodTats);
+
+  document.getElementById('kpiCompleted1').textContent = totalCompleted.toLocaleString();
+  document.getElementById('kpiOpen1').textContent = openCount.toLocaleString();
+  document.getElementById('kpiMedianTat1').textContent = periodMedianTat != null ? Math.round(periodMedianTat) + ' days' : 'n/a';
+}
+document.getElementById('periodSelect').addEventListener('change', renderTab1);
+renderTab1();
+
+// ---- Tab 2: pre-RFR titles, real data for Social Sciences ----
+const preRfrTitles = [
+  { title: 'Geousp', status: 'Publisher recontacted', publisher: 'Universidade de Sao Paulo' },
+  { title: 'Servico Social and Sociedade', status: 'Publisher recontacted', publisher: 'Cortez Editora' },
+  { title: 'Korean Journal of International Relations', status: 'Enriched by publisher', publisher: 'The Korean Association of International Studies' },
+  { title: 'Malaysian Journal of Sport Science and Recreation', status: 'Publisher recontacted', publisher: 'Penerbit Universiti Teknologi Malaysia Press' },
+  { title: 'Woman in Development and Politics', status: 'Enriched by publisher', publisher: 'University of Tehran' },
+  { title: 'Acta Universitatis Lodziensis. Folia Sociologica', status: 'Validated', publisher: 'Lodz University Press' },
+  { title: 'Calisma ve Toplum', status: 'Validated', publisher: 'Birleşik Metal-İş Trade Union' },
+  { title: 'Prizren Social Science Journal', status: 'Validated', publisher: 'Association of Scientists and Intellectuals of Kosovo (SHIKS)' },
+  { title: 'Mimbar : Jurnal Sosial dan Pembangunan', status: 'Validated', publisher: 'Universitas Islam Bandung' },
+  { title: 'ETKI: Journal of Literature, Theatre and Culture Studies', status: 'Validated', publisher: 'Burak Raşit Oçak' },
+  { title: 'International Journal of Tourism, Culture and Spirituality', status: 'Validated', publisher: 'University of Science and Culture' },
+  { title: 'The Sunan Ampel Review of Political and Social Sciences', status: 'Validated', publisher: 'Sunan Ampel State Islamic University Surabaya' },
+  { title: 'International Journal of Politics and Security', status: 'Validated', publisher: 'Association of International Politics and Security (INTPOLSEC)' },
+  { title: 'Journal of African Linguistic Anthropology', status: 'Validated', publisher: 'Global Council on Anthropological Linguistics' },
+  { title: 'Ethos : Jurnal Penelitian dan Pengabdian kepada Masyarakat', status: 'Validated', publisher: 'Universitas Islam Bandung' },
+  { title: 'Latin American Journal of European Studies', status: 'Validated', publisher: 'Laces (Latin American Center of European Studies)' },
+  { title: 'International Journal of Development Strategies in Humanities, Management and Social Sciences', status: 'Enriched by publisher', publisher: 'International Scientific Research Consortium' },
+  { title: 'Revista de Ciencias Sociales', status: 'Validated', publisher: 'Fundación de Cultura Universitaria' },
+  { title: 'Gregal', status: 'Validated', publisher: 'Sar Alejandría' },
+  { title: 'Critique and Humanism Journal', status: 'Validated', publisher: 'Human and Social Studeis Foundation - Sofia' },
+  { title: 'Revista CENTRA de Ciencias Sociales', status: 'Validated', publisher: 'Fundacion Centro de Estudios Andaluces (Centra)' },
+  { title: 'Texas National Security Review', status: 'Validated', publisher: 'University of Texas Press' },
+  { title: 'Dixit', status: 'Validated', publisher: 'Universidad Católica del Uruguay' },
+  { title: 'Mediator: Jurnal Komunikasi', status: 'Validated', publisher: 'Universitas Islam Bandung' },
+  { title: 'Buana Gender: Jurnal Studi Gender dan Anak', status: 'Validated', publisher: 'Universitas Islam Negeri Raden Mas Said Surakarta' },
+  { title: 'Kafaah: Journal of Gender Studies', status: 'Validated', publisher: 'Universitas Islam Negeri Imam Bonjol Padang' },
+  { title: 'Mdooter Journal of Communication and Digital Technologies', status: 'Validated', publisher: 'Verlumun and Penda Publishers' },
+  { title: 'Asian Journal of Agriculture and Development (AJAD)', status: 'Validated', publisher: 'Southeast Asian Regional Center for Graduate Study and Research in Agriculture (SEARCA)' },
+  { title: 'Turismo y Patrimonio', status: 'Validated', publisher: 'Fabrizio Augusto Alberca Sialer' },
+  { title: 'Wychowanie w Rodzinie', status: 'Validated', publisher: 'Wydawnictwo Naukowe EDUsfera (EDUsfera Academic Press)' },
+  { title: 'South Asian Journal of Social Sciences and Humanities', status: 'Validated', publisher: 'ACS Publisher' },
+  { title: 'Journal of Cultural Management and Cultural Policy', status: 'Validated', publisher: 'Sage' },
+  { title: 'Latin American Journal of Development', status: 'Validated', publisher: 'Latin American Publicações' },
+  { title: 'European Social Work Research', status: 'Validated', publisher: 'Policy Press' },
+  { title: 'UPA Strategic Affairs', status: 'Validated', publisher: 'Ozan Örmeci' },
+  { title: 'Social Values and Society', status: 'Newly suggested', publisher: 'Zibeline International Journals' },
+  { title: 'Cultural Communication And Socialization Journal', status: 'Newly suggested', publisher: 'Zibeline International Journals' },
+  { title: 'U.S.-Japan Women\'s Journal', status: 'Validated', publisher: 'University of Hawaii Press' },
+  { title: 'Social Sciences and Development Review', status: 'Validated', publisher: 'Polytechnic University of the Philippines' },
+  { title: 'Kultur Arastirmalari Dergisi', status: 'Validated', publisher: 'Mehmet Ali Yolcu' },
+  { title: 'Psichologija', status: 'Validated', publisher: 'Vilnius University Press' },
+  { title: 'International Journal of Social and Educational Sciences', status: 'Validated', publisher: 'Selim Hilmi Özkan' },
+  { title: 'Magallat al-gadid li-l-ulum al-insaniyyat', status: 'Newly suggested', publisher: 'Publisher not listed' },
+  { title: 'Multimodality and Society', status: 'Validated', publisher: 'Sage' },
+  { title: 'The Turkish Online Journal of Educational Technology', status: 'Validated', publisher: 'Aytekin ISMAN' }
+];
+const pieColors = ['#2a78d6','#eb6834','#e34948','#0c447c'];
+function bucketForStatus(status) {
+  const s = (status || '').trim().toLowerCase();
+  if (['newly suggested','enriched by publisher','publisher contacted','publisher recontacted'].includes(s)) return 'Newly suggested';
+  if (s === 'validated') return 'Validated';
+  if (s.startsWith('enriched - stage') || s.startsWith('enriched stage')) return 'Enrichment';
+  if (['preselection','preselection completed','local board review','local board completed'].includes(s)) return 'Local board';
+  return status;
+}
+function placeholderJournalWebsite(title) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  return `example.com/${slug}`;
+}
+function renderPreRfr() {
+  document.getElementById('kpiOpenTotal').textContent = preRfrTitles.length;
+  document.getElementById('preRfrCount').textContent = preRfrTitles.length;
+  if (!preRfrTitles.length) {
+    document.getElementById('preRfrPie').closest('div').innerHTML = '<p style="padding:2rem; text-align:center; color:var(--text-muted); font-size:13px;">No titles currently pre-RFR for this subject area — the pipeline is empty right now.</p>';
+    document.getElementById('exportPreRfrBtn').disabled = true;
+    document.getElementById('preRfrBucketSummary').textContent = '';
+    return;
+  }
+  const statusCounts = {};
+  preRfrTitles.forEach(t => { const b = bucketForStatus(t.status); statusCounts[b] = (statusCounts[b]||0) + 1; });
+  const labels = Object.keys(statusCounts);
+  const bucketOrder = ['Newly suggested','Validated','Enrichment','Local board'];
+  const orderedLabels = [...bucketOrder.filter(b => statusCounts[b]), ...labels.filter(l => !bucketOrder.includes(l))];
+  document.getElementById('preRfrBucketSummary').textContent = orderedLabels.map(b => `${statusCounts[b]} ${b}`).join(' · ');
+  const data = labels.map(l => statusCounts[l]);
+  new Chart(document.getElementById('preRfrPie'), {
+    type: 'pie',
+    data: { labels, datasets: [{ data, backgroundColor: labels.map((_,i)=>pieColors[i % pieColors.length]) }] },
+    plugins: [ChartDataLabels],
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend: { position:'right', labels:{ boxWidth:10, font:{size:11} } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed} title${ctx.parsed===1?'':'s'}` } },
+        datalabels: { color:'#fff', font:{ weight:'600', size:12 }, formatter: (value) => value } } }
+  });
+}
+renderPreRfr();
+
+function exportPreRfrCsv() {
+  const header = ['Journal title','Status','Publisher','Journal website'];
+  const rows = preRfrTitles.map(t => [t.title, bucketForStatus(t.status), t.publisher, placeholderJournalWebsite(t.title)]);
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'pre_rfr_titles.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('exportPreRfrBtn').addEventListener('click', exportPreRfrCsv);
+</script>
+</body>
+</html>
